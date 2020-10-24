@@ -7,10 +7,38 @@
 
 //#pragma comment(lib, "ws2_32.lib")  // 指明需要使用的动态链接库，只有vc++支持这种写法, 也可以在属性里链接库输入里配置
 
-struct DataPackage
+enum CMD
 {
-	int age;
-	char name[32];
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR,
+};
+
+struct DataHeader
+{
+	short dataLength;  // 数据长度
+	short cmd;   // 命令
+};
+
+struct Login
+{
+	char userName[32];
+	char password[32];
+};
+
+struct LoginResult
+{
+	int result;
+};
+
+struct Logout
+{
+	char userName[32];
+};
+
+struct LogoutResult
+{
+	int result;
 };
 
 int main()
@@ -69,30 +97,46 @@ int main()
 	}
 	printf("新客户端加入: IP = %s\n", inet_ntoa(clientAddr.sin_addr));
 
-	char _recvBuf[128] = { 0 };
-
 	while (true)
 	{
+		DataHeader header = {};
 		// 5. 接收客户端数据
-		int nLen = recv(_cSock, _recvBuf, sizeof(_recvBuf), 0);
+		int nLen = recv(_cSock, (char*)&header, sizeof(DataHeader), 0);
 		if (nLen <= 0)
 		{
 			printf("客户端已退出, 任务结束\n");
 			break;
 		}
 		// 6. 处理请求
-		printf("接收: %s\n", _recvBuf);
-		if (0 == strcmp(_recvBuf, "getInfo"))
+		printf("接收命令: %d, 数据长度: %d\n", header.cmd, header.dataLength);
+		
+		switch (header.cmd)
 		{
-			DataPackage dp = {30, "张三"};
-			// 7. send 向客户端返回一条数据
-			send(_cSock, (const char*)&dp, sizeof(DataPackage), 0);
+		case CMD_LOGIN:
+		{
+			Login login = {};
+			recv(_cSock, (char*)&login, sizeof(Login), 0);
+			LoginResult ret = { 1 };
+			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
+			send(_cSock, (char*)&ret, sizeof(LoginResult), 0);
+			break;
 		}
-		else
+		case CMD_LOGOUT:
 		{
-			char msgBuf[] = "Hello, I'm Sever.";
-			// 7. send 向客户端返回一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+			Logout logout = {};
+			recv(_cSock, (char*)&logout, sizeof(Logout), 0);
+			LogoutResult logoutRet = { 1 };
+			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
+			send(_cSock, (char*)&logoutRet, sizeof(LogoutResult), 0);
+			break;
+		}
+		default:
+		{
+			header.cmd = CMD_ERROR;
+			header.dataLength = 0;
+			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
+			break;
+		}
 		}
 	}
 	// 8. 关闭套接字 closesocket

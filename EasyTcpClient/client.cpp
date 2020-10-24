@@ -7,10 +7,38 @@
 
 //#pragma comment(lib, "ws2_32.lib")  // 指明需要使用的动态链接库，只有vc++支持这种写法, 也可以在属性里链接库输入里配置
 
-struct DataPackage
+enum CMD
 {
-	int age;
-	char name[32];
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR,
+};
+
+struct DataHeader
+{
+	short dataLength;  // 数据长度
+	short cmd;   // 命令
+};
+
+struct Login
+{
+	char userName[32];
+	char password[32];
+};
+
+struct LoginResult
+{
+	int result;
+};
+
+struct Logout
+{
+	char userName[32];
+};
+
+struct LogoutResult
+{
+	int result;
 };
 
 int main()
@@ -54,18 +82,36 @@ int main()
 		{
 			break;
 		} 
-		else {
-			// 5. 向服务器发送请求
-			send(_sock, cmdBuf, sizeof(cmdBuf), 0);
-		}
-
-		// 6. 接收服务器信息 recv
-		char recvBuf[128] = {0};
-		int nLen = recv(_sock, recvBuf, sizeof(recvBuf), 0);
-		if (nLen > 0)
+		else if (0 == strcmp(cmdBuf, "login"))
 		{
-			DataPackage* dp = (DataPackage*)recvBuf;
-			printf("接收到数据：年龄%d 姓名%s\n", dp->age, dp->name);
+			Login login = {"drw", "123456"};
+			DataHeader dh = { sizeof(login), CMD_LOGIN};
+			// 5. 向服务器发送请求
+			send(_sock, (const char*)&dh, sizeof(dh), 0);
+			send(_sock, (const char*)&login, sizeof(login), 0);
+			// 接收服务器返回数据
+			DataHeader retHeader = {};
+			LoginResult loginRet = {};
+			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
+			printf("LoginResult: %d", loginRet.result);
+		}
+		else if (0 == strcmp(cmdBuf, "logout"))
+		{
+			Logout logout = { "drw" };
+			DataHeader dh = { sizeof(logout), CMD_LOGOUT };
+			// 5. 向服务器发送请求
+			send(_sock, (const char*)&dh, sizeof(dh), 0);
+			send(_sock, (const char*)&logout, sizeof(logout), 0);
+			// 接收服务器返回数据
+			DataHeader retHeader = {};
+			LogoutResult logoutRet = {};
+			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
+			printf("LogoutResult: %d\n", logoutRet.result);
+		} 
+		else {
+			printf("不支持的命令，请重新输入\n");
 		}
 	}
 	
