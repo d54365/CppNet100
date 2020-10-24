@@ -112,9 +112,10 @@ int main()
 
 	while (true)
 	{
-		DataHeader header = {};
+		char szRecv[4096] = {};
 		// 5. 接收客户端数据
-		int nLen = recv(_cSock, (char*)&header, sizeof(DataHeader), 0);
+		int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
+		DataHeader* header = (DataHeader*)szRecv;
 		if (nLen <= 0)
 		{
 			printf("客户端已退出, 任务结束\n");
@@ -122,34 +123,35 @@ int main()
 		}
 		// 6. 处理请求
 		
-		switch (header.m_cmd)
+		switch (header->m_cmd)
 		{
 		case CMD_LOGIN:
 		{
-			Login login = {};
-			recv(_cSock, (char*)&login + sizeof(DataHeader), sizeof(Login) - sizeof(DataHeader), 0);
-			printf("接收到的命令: %d, 数据长度：%d, userName: %s, password: %s\n", header.m_cmd, header.m_dataLength, login.userName, login.password);
+			Login* login;
+			recv(_cSock, szRecv + sizeof(DataHeader), header->m_dataLength - sizeof(DataHeader), 0);
+			login = (Login*)szRecv;
+			printf("接收到的命令: %d, 数据长度：%d, userName: %s, password: %s\n", header->m_cmd, header->m_dataLength, login->userName, login->password);
 			LoginResult ret;
 			send(_cSock, (char*)&ret, sizeof(LoginResult), 0);
-			break;
 		}
+		break;
 		case CMD_LOGOUT:
 		{
-			Logout logout = {};
-			recv(_cSock, (char*)&logout + sizeof(DataHeader), sizeof(Logout) - sizeof(DataHeader), 0);
-			printf("接收到的命令: %d, 数据长度：%d, userName: %s\n", header.m_cmd, header.m_dataLength, logout.userName);
+			Logout* logout;
+			recv(_cSock, szRecv + sizeof(DataHeader), sizeof(Logout) - sizeof(DataHeader), 0);
+			logout = (Logout*)szRecv;
+			printf("接收到的命令: %d, 数据长度：%d, userName: %s\n", header->m_cmd, header->m_dataLength, logout->userName);
 			LogoutResult logoutRet;
 			send(_cSock, (char*)&logoutRet, sizeof(LogoutResult), 0);
-			break;
 		}
+		break;
 		default:
 		{
-			printf("接收到的命令: %d, 数据长度：%d\n", header.m_cmd, header.m_dataLength);
-			header.m_cmd = CMD_ERROR;
-			header.m_dataLength = 0;
+			printf("接收到的命令: %d, 数据长度：%d\n", header->m_cmd, header->m_dataLength);
+			DataHeader header = {0, CMD_ERROR};
 			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
-			break;
 		}
+		break;
 		}
 	}
 	// 8. 关闭套接字 closesocket
