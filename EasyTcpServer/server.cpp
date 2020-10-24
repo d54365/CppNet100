@@ -7,12 +7,17 @@
 
 //#pragma comment(lib, "ws2_32.lib")  // 指明需要使用的动态链接库，只有vc++支持这种写法, 也可以在属性里链接库输入里配置
 
+struct DataPackage
+{
+	int age;
+	char name[32];
+};
+
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	WSAStartup(ver, &dat);  // 启动windows socket 2.x网络环境
-
 	// 建立一个tcp服务端
 	// 1. 建立一个socket
 	// AF_INET: IPV4
@@ -77,18 +82,12 @@ int main()
 		}
 		// 6. 处理请求
 		printf("接收: %s\n", _recvBuf);
-		if (0 == strcmp(_recvBuf, "getName"))
+		if (0 == strcmp(_recvBuf, "getInfo"))
 		{
-			char msgBuf[] = "Hello, I'm Drw.";
+			DataPackage dp = {30, "张三"};
 			// 7. send 向客户端返回一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+			send(_cSock, (const char*)&dp, sizeof(DataPackage), 0);
 		}
-		else if (0 == strcmp(_recvBuf, "getAge"))
-		{
-			char msgBuf[] = "Hello, I'm 27.";
-			// 7. send 向客户端返回一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
-		} 
 		else
 		{
 			char msgBuf[] = "Hello, I'm Sever.";

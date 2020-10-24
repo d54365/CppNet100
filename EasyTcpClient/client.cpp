@@ -7,6 +7,12 @@
 
 //#pragma comment(lib, "ws2_32.lib")  // 指明需要使用的动态链接库，只有vc++支持这种写法, 也可以在属性里链接库输入里配置
 
+struct DataPackage
+{
+	int age;
+	char name[32];
+};
+
 int main()
 {
 	WORD ver = MAKEWORD(2, 2);
@@ -54,11 +60,12 @@ int main()
 		}
 
 		// 6. 接收服务器信息 recv
-		char recvBuf[128] = {};
+		char recvBuf[128] = {0};
 		int nLen = recv(_sock, recvBuf, sizeof(recvBuf), 0);
 		if (nLen > 0)
 		{
-			printf("接收到数据：%s\n", recvBuf);
+			DataPackage* dp = (DataPackage*)recvBuf;
+			printf("接收到数据：年龄%d 姓名%s\n", dp->age, dp->name);
 		}
 	}
 	
