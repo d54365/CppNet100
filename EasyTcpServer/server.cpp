@@ -10,35 +10,48 @@
 enum CMD
 {
 	CMD_LOGIN,
+	CMD_LOGIN_RESULT,
 	CMD_LOGOUT,
+	CMD_LOGOUT_RESULT,
 	CMD_ERROR,
 };
 
 struct DataHeader
 {
-	short dataLength;  // 数据长度
-	short cmd;   // 命令
+	short m_dataLength;  // 数据长度
+	short m_cmd;   // 命令
+
+	DataHeader(short dataLength, short cmd) : m_dataLength(dataLength), m_cmd(cmd) {}
+	DataHeader() = default;
 };
 
-struct Login
+struct Login : public DataHeader
 {
 	char userName[32];
 	char password[32];
+
+	Login() : DataHeader(sizeof(Login), CMD_LOGIN) {}
 };
 
-struct LoginResult
+struct LoginResult : public DataHeader
 {
 	int result;
+
+	LoginResult() : DataHeader(sizeof(LoginResult), CMD_LOGIN_RESULT), result(0) {}
 };
 
-struct Logout
+struct Logout : public DataHeader
 {
 	char userName[32];
+
+	Logout() : DataHeader(sizeof(Logout), CMD_LOGOUT) {}
 };
 
-struct LogoutResult
+struct LogoutResult : public DataHeader
 {
 	int result;
+
+	LogoutResult() : DataHeader(sizeof(LogoutResult), CMD_LOGOUT_RESULT), result(0) {}
 };
 
 int main()
@@ -108,32 +121,32 @@ int main()
 			break;
 		}
 		// 6. 处理请求
-		printf("接收命令: %d, 数据长度: %d\n", header.cmd, header.dataLength);
 		
-		switch (header.cmd)
+		switch (header.m_cmd)
 		{
 		case CMD_LOGIN:
 		{
 			Login login = {};
-			recv(_cSock, (char*)&login, sizeof(Login), 0);
-			LoginResult ret = { 1 };
-			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
+			recv(_cSock, (char*)&login + sizeof(DataHeader), sizeof(Login) - sizeof(DataHeader), 0);
+			printf("接收到的命令: %d, 数据长度：%d, userName: %s, password: %s\n", header.m_cmd, header.m_dataLength, login.userName, login.password);
+			LoginResult ret;
 			send(_cSock, (char*)&ret, sizeof(LoginResult), 0);
 			break;
 		}
 		case CMD_LOGOUT:
 		{
 			Logout logout = {};
-			recv(_cSock, (char*)&logout, sizeof(Logout), 0);
-			LogoutResult logoutRet = { 1 };
-			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
+			recv(_cSock, (char*)&logout + sizeof(DataHeader), sizeof(Logout) - sizeof(DataHeader), 0);
+			printf("接收到的命令: %d, 数据长度：%d, userName: %s\n", header.m_cmd, header.m_dataLength, logout.userName);
+			LogoutResult logoutRet;
 			send(_cSock, (char*)&logoutRet, sizeof(LogoutResult), 0);
 			break;
 		}
 		default:
 		{
-			header.cmd = CMD_ERROR;
-			header.dataLength = 0;
+			printf("接收到的命令: %d, 数据长度：%d\n", header.m_cmd, header.m_dataLength);
+			header.m_cmd = CMD_ERROR;
+			header.m_dataLength = 0;
 			send(_cSock, (char*)&header, sizeof(DataHeader), 0);
 			break;
 		}

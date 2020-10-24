@@ -10,35 +10,48 @@
 enum CMD
 {
 	CMD_LOGIN,
+	CMD_LOGIN_RESULT,
 	CMD_LOGOUT,
+	CMD_LOGOUT_RESULT,
 	CMD_ERROR,
 };
 
 struct DataHeader
 {
-	short dataLength;  // 数据长度
-	short cmd;   // 命令
+	short m_dataLength;  // 数据长度
+	short m_cmd;   // 命令
+
+	DataHeader(short dataLength, short cmd) : m_dataLength(dataLength), m_cmd(cmd) {}
+	DataHeader() = default;
 };
 
-struct Login
+struct Login : public DataHeader
 {
 	char userName[32];
 	char password[32];
+
+	Login() : DataHeader(sizeof(Login), CMD_LOGIN) {}
 };
 
-struct LoginResult
+struct LoginResult : public DataHeader
 {
 	int result;
+
+	LoginResult() : DataHeader(sizeof(LoginResult), CMD_LOGIN_RESULT), result(0) {}
 };
 
-struct Logout
+struct Logout : public DataHeader
 {
-	char userName[32];
+	char userName[32] = {};
+
+	Logout() : DataHeader(sizeof(Logout), CMD_LOGOUT) {}
 };
 
-struct LogoutResult
+struct LogoutResult : public DataHeader
 {
 	int result;
+
+	LogoutResult() : DataHeader(sizeof(LogoutResult), CMD_LOGOUT_RESULT), result(0) {}
 };
 
 int main()
@@ -84,29 +97,24 @@ int main()
 		} 
 		else if (0 == strcmp(cmdBuf, "login"))
 		{
-			Login login = {"drw", "123456"};
-			DataHeader dh = { sizeof(login), CMD_LOGIN};
+			Login login;
+			strcpy_s(login.userName, "drw");
+			strcpy_s(login.password, "123456");
 			// 5. 向服务器发送请求
-			send(_sock, (const char*)&dh, sizeof(dh), 0);
 			send(_sock, (const char*)&login, sizeof(login), 0);
 			// 接收服务器返回数据
-			DataHeader retHeader = {};
 			LoginResult loginRet = {};
-			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
 			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
-			printf("LoginResult: %d", loginRet.result);
+			printf("LoginResult: %d\n", loginRet.result);
 		}
 		else if (0 == strcmp(cmdBuf, "logout"))
 		{
-			Logout logout = { "drw" };
-			DataHeader dh = { sizeof(logout), CMD_LOGOUT };
+			Logout logout;
+			strcpy_s(logout.userName, "drw");
 			// 5. 向服务器发送请求
-			send(_sock, (const char*)&dh, sizeof(dh), 0);
 			send(_sock, (const char*)&logout, sizeof(logout), 0);
 			// 接收服务器返回数据
-			DataHeader retHeader = {};
 			LogoutResult logoutRet = {};
-			recv(_sock, (char*)&retHeader, sizeof(DataHeader), 0);
 			recv(_sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
 			printf("LogoutResult: %d\n", logoutRet.result);
 		} 
